@@ -3,29 +3,38 @@ use Test;
 # XXX is this the best way to make test support classes available?
 use lib 't/lib';
 use LockTestSupport;
+use ReadWriteLock;
 
-plan 1;
+plan 2;
 
-subtest 'Basic Lock operations should work as expected', {
-    my $lock-under-test = Lock.new();
+subtest "AccessMode ordering", {
+    plan 4;
+    my AccessMode $a = shared;
+    my AccessMode $b = exclusive;
+    ok $a <= $a, "shared is less/equal than shared";
+    ok $a <= $b, "shared is less/equal than exclusive";
+    ok $b >= $a, "exclusive is greateer/equal than shared";
+    ok $b >= $b, "exclusive is greater/equal than exclusive";
+    done-testing;
+}
+
+subtest "Basic Lock operations", {
+    my $lock-under-test = ReadWriteLock.new();
     my $lts = LockTestSupport.new(
         num-steps => 7,
         testsubs => [
             sub ($ltsr) {
                 given $ltsr.current-time() {
                     when 1 {
-                        $lock-under-test.lock();
+                        $lock-under-test.lock-exclusive();
                         return "L1";
                     }
                     when 2 {
-                        $lock-under-test.lock();
+                        $lock-under-test.lock-exclusive();
                         return "L2";
                     }
                     when 3 {
                         $lock-under-test.unlock();
-                        CATCH {
-                            default: return "EX";
-                        }
                         return "U3";
                     }
                     when 4 {
@@ -40,14 +49,16 @@ subtest 'Basic Lock operations should work as expected', {
             sub ($ltsr) {
                 given $ltsr.current-time() {
                     when 0 {
-                        CATCH {
-                            default: return "EX";
+                        try {
+                            $lock-under-test.unlock();
+                            return "U0";
                         }
-                        $lock-under-test.unlock();
-                        return "U0";
+                        if $! {
+                            return "EX";
+                        }
                     }
                     when 2 {
-                        $lock-under-test.lock();
+                        $lock-under-test.lock-exclusive();
                         return "L2";
                     }
                     when 6 {

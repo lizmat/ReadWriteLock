@@ -47,6 +47,8 @@ class LockTestSupport {
                     $!lock.protect({
                         # first we want to wait for the next step in the
                         # sequence
+                        # XXX do raku condvars also do spuriouswakeups? should
+                        # be in the docs...
                         while $!clock < $wanted-step {
                             $!cond.wait();
                         }
@@ -54,7 +56,13 @@ class LockTestSupport {
 
                     # now we can call the test function and collect the
                     # results
-                    my $result = @!testsubs[$thread-num](self);
+                    my $result;
+                    try {
+                        $result = @!testsubs[$thread-num](self);
+                    }
+                    if $! {
+                        $result = "Exception: $!";
+                    }
 
                     # when storing the result we evaluate the current time
                     # again, so that we store after the potential blocking

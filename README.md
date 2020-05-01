@@ -4,11 +4,19 @@
 
 ## Features
 
-XXX
+* Does what a basic Lock does, just slower and wit more bugs ;)
+* Reentrant: the lock can be taken again by a thread that is already holding it.
+  It needs to be unlocked the same number of times it was locked before it can
+  be taken by annothwre thread.
+* Fair in the sense of first-come-first-serve
 
 ## Planned Features
 
-XXX
+* Finalize some design questions
+* Proper POD6 docs
+* Lock Upgrade Case
+* Async version that returns threads to the threadpool and returns a promise
+  from lock()
 
 ## Example Usage
 
