@@ -73,7 +73,7 @@ class LockTestSupport {
                         # we also determine if we are done with the whole 
                         # sequence
                         $wanted-step++;
-                        if $!clock > $wanted-step {
+                        if $!clock >= $wanted-step {
                             # we may have skipped some steps due to blocking
                             $wanted-step = $!clock + 1;
                         }

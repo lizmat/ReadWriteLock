@@ -1,0 +1,149 @@
+use Test;
+
+# XXX is this the best way to make test support classes available?
+use lib 't/lib';
+use LockTestSupport;
+use ReadWriteLock;
+
+plan 2;
+
+subtest "Basic shared operations", {
+    my $lock-under-test = ReadWriteLock.new();
+    my $lts = LockTestSupport.new(
+        num-steps => 6,
+        testsubs => [
+            sub ($ltsr) {
+                given $ltsr.current-time() {
+                    when 0 {
+                        $lock-under-test.lock-shared();
+                        return "L0";
+                    }
+                    when 3 {
+                        $lock-under-test.unlock();
+                        return "U3";
+                    }
+                    default {
+                        return "--";
+                    }
+                }
+            },
+            sub ($ltsr) {
+                given $ltsr.current-time() {
+                    when 1 {
+                        $lock-under-test.lock-shared();
+                        return "L1";
+                    }
+                    when 4 {
+                        $lock-under-test.unlock();
+                        return "U4";
+                    }
+                    default {
+                        return "--";
+                    }
+                }
+            },
+            sub ($ltsr) {
+                given $ltsr.current-time() {
+                    when 2 {
+                        $lock-under-test.lock-exclusive();
+                        return "L2";
+                    }
+                    when 5 {
+                        $lock-under-test.unlock();
+                        return "U5";
+                    }
+                    default {
+                        return "--";
+                    }
+                }
+            },
+        ]
+    );
+
+    plan 7;
+
+    my $result = $lts.run-sequence();
+    diag $result.gist;
+
+    is $result[0][0], "L0", "clean lock can be taken";
+    is $result[1][1], "L1", "lock can be shared from other thread";
+    is $result[0][3], "U3", "first thread unlocks";
+    is $result[1][4], "U4", "second thread unlocks";
+    
+    ok (!defined $result[2][3]), "exclusive lock from third thread blocks";
+    is $result[2][4], "L2", "...and succeeds after the first two threads both "
+                            ~ "unlocked";
+    is $result[2][5], "U5", "thread with exclusive access unlocks";
+
+    done-testing;
+}
+
+subtest "Shared after exclusive acces", {
+    my $lock-under-test = ReadWriteLock.new();
+    my $lts = LockTestSupport.new(
+        num-steps => 5,
+        testsubs => [
+            sub ($ltsr) {
+                given $ltsr.current-time() {
+                    when 0 {
+                        $lock-under-test.lock-exclusive();
+                        return "L0";
+                    }
+                    when 2 {
+                        $lock-under-test.unlock();
+                        return "U2";
+                    }
+                    default {
+                        return "--";
+                    }
+                }
+            },
+            sub ($ltsr) {
+                given $ltsr.current-time() {
+                    when 1 {
+                        $lock-under-test.lock-shared();
+                        return "L1";
+                    }
+                    when 3 {
+                        $lock-under-test.unlock();
+                        return "U3";
+                    }
+                    default {
+                        return "--";
+                    }
+                }
+            },
+            sub ($ltsr) {
+                given $ltsr.current-time() {
+                    when 1 {
+                        $lock-under-test.lock-shared();
+                        return "L1";
+                    }
+                    when 4 {
+                        $lock-under-test.unlock();
+                        return "U4";
+                    }
+                    default {
+                        return "--";
+                    }
+                }
+            },
+        ]
+    );
+
+    plan 6;
+
+    my $result = $lts.run-sequence();
+    diag $result.gist;
+
+    is $result[0][0], "L0", "exclusive lock taken";
+    is $result[0][2], "U2", "...and unlocked later";
+    ok (!defined $result[1][1]), "shared lock from second thread blocks";
+    ok (!defined $result[2][1]), "shared lock from third thread blocks";
+    is $result[1][2], "L1", "shared lock is taken after exclusive is released";
+    is $result[1][2], "L1", "...and shared with third thread";
+
+    done-testing;
+}
+
+done-testing;
