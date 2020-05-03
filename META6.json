@@ -1,7 +1,7 @@
 {
     "name": "ReadWriteLock",
     "description": "A lock with shared/exclusive access modes",
-    "version": "0.1",
+    "version": "0.2",
     "perl": "6.c",
     "authors": [
         "Robert Lemmen <robertle@semistable.com>"
