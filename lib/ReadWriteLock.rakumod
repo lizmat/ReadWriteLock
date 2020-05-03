@@ -72,12 +72,29 @@ tricky usages like overhand locking etc, but requires more care to be safe. If
 you lock multiple times, you need to unlock a matching number of times before
 the lock becomes available again.
 
+=headd1 Lock Upgrades
+
+    $l.lock-shared();
+
+    # do something
+
+    $l.lock-exclusive();
+
+    # do something else that requires exclusive access
+
+    $l.unlock();
+
+You can upgrade a lock that you are holding in shared mode to an exclusive
+access, as long as no other thread was traying to do the same before (You will
+get an exception in that case). In this case you only need to unlock once, the
+lock has been upgraded not re-entered.
+
 =end pod
 
 class ReadWriteLock {
 
     class WaitGroup {
-        has $.access;
+        has $.access is rw;
         has %.threads;  # thread-id -> count of reentrant lock() calls
         has $.cond;
     };
@@ -92,7 +109,7 @@ class ReadWriteLock {
                 @!wait-groups.push(WaitGroup.new(
                     access => $access,
                     threads => ($*THREAD.id => 1),
-                    cond => Any)); # we do not even need one in this case!
+                    cond => $!latch.condition));
                 return;
             }
             # Case B: we already hold the lock in a access mode equal or
@@ -111,7 +128,31 @@ class ReadWriteLock {
                 }
                 return;
             }
-            # Case D: otherwise we add a new waitgroup to the end
+            # Case D: we want to upgrade the lock from shared to exclusive
+            elsif      $access == exclusive 
+                    && @!wait-groups.head.access == shared
+                    && @!wait-groups.head.threads{$*THREAD.id} {
+                if not @!wait-groups.head === @!wait-groups.tail {
+                    # there is another waitgroup inbetween, which is exclusive
+                    # otherwise it would have been added to the head waitgroup
+                    # which is shared. so we cannot upgrade the lock
+                    die "Attempt to upgrade ReadWriteLock blocked by other thread";
+                }
+                else {
+                    while @!wait-groups.head.threads.elems > 1 {
+                        # we just need to wait until we have the waitgroup for
+                        # ourselves
+                        @!wait-groups.head.cond.wait();
+                    }
+                    # ... and then we can upgrade it
+                    @!wait-groups.head.access = exclusive;
+                    return;
+                }
+                # interestingly the case E below does the right thing if there
+                # are still other shared threads in the waitgroup we want to
+                # upgrade
+            }
+            # Case E: otherwise we add a new waitgroup to the end
             else {
                 my $new-wg = WaitGroup.new(
                     access => $access,
@@ -141,9 +182,11 @@ class ReadWriteLock {
                     # their turn...
                     if ! @!wait-groups.head.threads {
                         @!wait-groups.shift;
-                        if @!wait-groups {
-                            @!wait-groups.head.cond.signal_all;
-                        }
+                    }
+                    # XXX we only need this outside the previous if for
+                    # upgrades, optimize to avoid spurious wakeups
+                    if @!wait-groups {
+                        @!wait-groups.head.cond.signal_all;
                     }
                 }
             }

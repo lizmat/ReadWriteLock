@@ -1,6 +1,5 @@
 use Test;
 
-# XXX is this the best way to make test support classes available?
 use lib 't/lib';
 use LockTestSupport;
 use ReadWriteLock;

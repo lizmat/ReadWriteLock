@@ -4,17 +4,20 @@
 
 ## Features
 
-* Does what a basic `Lock` does, just slower and wit more bugs ;)
+* Does what a basic `Lock` does, just slower and with more bugs ;)
 * Reentrant: the lock can be taken again by a thread that is already holding it
   It needs to be unlocked the same number of times it was locked before it can
   be taken by another thread
 * Fair in the sense of first-come-first-serve
 * Shared access: multiple 'readers' can share the lock, yet access is mutually
   exclusive between 'readers' and 'writers'
+* Lock Upgrade: you can upgrade a shared access mode to an exclusive without
+  unlocking first, if no other thread is interferring. In this case you do not
+  need to unlock twice.
 
 ## Planned Features
 
-* Lock Upgrade Case
+* Read-for-write access mode that guarantees that a lock upgrade can be taken
 * Async version that returns threads to the threadpool and returns a promise
   from lock()
 
