@@ -14,7 +14,6 @@
 
 ## Planned Features
 
-* Finalize some design questions
 * Lock Upgrade Case
 * Async version that returns threads to the threadpool and returns a promise
   from lock()
