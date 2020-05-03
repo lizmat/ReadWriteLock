@@ -15,7 +15,6 @@
 ## Planned Features
 
 * Finalize some design questions
-* Proper POD6 docs
 * Lock Upgrade Case
 * Async version that returns threads to the threadpool and returns a promise
   from lock()
@@ -23,12 +22,46 @@
 ## Example Usage
 
 ```
-XXX
+use ReadWriteLock;
+
+my $l = ReadWriteLock.new;
+
+my $thread-a = Thread.start({
+    $l.lock-shared();
+    for ^5 {
+        sleep 1;
+        say "thread A doing something under protection of the lock";
+    }
+    $l.unlock();
+});
+
+my $thread-b = Thread.start({
+    $l.protect-shared({
+        for ^5 {
+            sleep 1;
+            say "thread B doing something under protection of the lock";
+        }
+    });
+});
+
+my $thread-c = Thread.start({
+    $l.protect-exclusive({
+        for ^5 {
+            sleep 1;
+            say "thread C doing something under exclusive protection of the lock";
+        }
+    });
+});
+
+$thread-a.join;
+$thread-b.join;
+$thread-c.join;
 ```
 
 ## Documentation
 
-XXX
+Please see the POD in lib/ReadWriteLock.rakumod for more documentation and usage
+scenarios.
 
 ## License
 

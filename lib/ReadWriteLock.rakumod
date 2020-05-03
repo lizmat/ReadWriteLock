@@ -14,6 +14,70 @@ sub infix:<\>=>(AccessMode $a, AccessMode $b) {
     return $a == exclusive || $b == shared;
 }
 
+=begin pod
+
+=TITLE ReadWriteLock -- A lock with shared/exclusive access modes
+
+This module implements a lock/mutex with shared and exclusive access modes, so a
+set of 'readers' could share the lock while 'writers' need exclusive access. The
+lock is reentrant, so can be taken multiple times by the same thread, and fair
+in the sense of come-first-server-first. 
+
+Please note that locks of whatever kind are a very low-level synchronisation
+mechanism and inherently difficult to use correctly, where possible higher-level
+mechanisms like a C<Channel>, C<Promise> or C<Suppply> should be used.
+
+=head1 Constructor
+
+    use ReadWriteLock
+    
+    my $l = ReadWriteLock.new()
+
+Constructing a ReadWriteLock is very simple and takes no arguments.
+
+=head1 Protecting a Code segment
+
+    $l.protect-shared({
+        # code thunk
+    });
+    
+    $l.protect-exclusive({
+        # code thunk
+    });
+    
+    $l.protect(shared, {
+        # code thunk
+    });
+
+    $l.protect(exclusive, {
+        # code thunk
+    });
+
+The C<protect()> usage pattern has the distinct benefit that it automatically
+unlocks in case of e.g. exceptions or whenever the code block is being left. You
+can either use the 'long' form like C<protect-shared()>, which is nice and
+implicit, or pass the access mode in as an argument, which allows determning it
+from a function and passing it around.
+
+=head1 Direct locking/unlocking
+
+    $l.lock-shared();
+
+    $l.lock-exclusive();
+
+    $l.lock(shared);
+
+    $l.lock(exclusive);
+
+    $l.unlock();
+
+Alternatively you can also use stand-alone lock/unlock calls, which allows
+tricky usages like overhand locking etc, but requires more care to be safe. If
+you lock multiple times, you need to unlock a matching number of times before
+the lock becomes available again.
+
+=end pod
+
 class ReadWriteLock {
 
     class WaitGroup {
