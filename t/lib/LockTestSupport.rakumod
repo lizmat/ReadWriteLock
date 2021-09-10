@@ -102,3 +102,4 @@ class LockTestSupport {
     }
 }
 
+# vim: expandtab shiftwidth=4

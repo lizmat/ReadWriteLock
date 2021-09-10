@@ -1,8 +1,8 @@
 use Test;
 
+use ReadWriteLock;
 use lib 't/lib';
 use LockTestSupport;
-use ReadWriteLock;
 
 plan 2;
 
@@ -88,8 +88,6 @@ subtest "Basic Lock operations", {
     ok (!defined $result[1][3]), "double-taken lock blocks other thread after first unlock";
     is $result[1][4], "L2", "blocked lock attempt suceeds after second unlock by other thread";
     is $result[1][6], "U6", "unlocking returns as expected";
-
-    done-testing;
 }
 
-done-testing;
+# vim: expandtab shiftwidth=4

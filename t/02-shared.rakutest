@@ -1,8 +1,8 @@
 use Test;
 
+use ReadWriteLock;
 use lib 't/lib';
 use LockTestSupport;
-use ReadWriteLock;
 
 plan 2;
 
@@ -141,8 +141,6 @@ subtest "Shared after exclusive acces", {
     ok (!defined $result[2][1]), "shared lock from third thread blocks";
     is $result[1][2], "L1", "shared lock is taken after exclusive is released";
     is $result[1][2], "L1", "...and shared with third thread";
-
-    done-testing;
 }
 
-done-testing;
+# vim: expandtab shiftwidth=4

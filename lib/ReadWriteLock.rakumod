@@ -3,16 +3,79 @@ enum AccessMode <shared exclusive>;
 # we want to be able to compare AccessModes for an "implied-in" predicate,
 # where e.g. exclusive access includes everything you can do with shared access 
 sub infix:<\<=>(AccessMode $a, AccessMode $b) {
-    return $a == shared || $b == exclusive;
+    $a == shared || $b == exclusive;
 }
 
 sub infix:<\>=>(AccessMode $a, AccessMode $b) {
-    return $a == exclusive || $b == shared;
+    $a == exclusive || $b == shared;
 }
 
 =begin pod
 
-=TITLE ReadWriteLock -- A lock with shared/exclusive access modes
+=head1 TITLE
+
+ReadWriteLock -- A lock with shared/exclusive access modes
+
+=head1 SYNOPSIS
+
+=begin code :lang<raku>
+
+use ReadWriteLock;
+
+my $l = ReadWriteLock.new;
+
+my $thread-a = Thread.start({
+    $l.lock-shared();
+    for ^5 {
+        sleep 1;
+        say "thread A doing something under protection of the lock";
+    }
+    $l.unlock();
+});
+
+my $thread-b = Thread.start({
+    $l.protect-shared({
+        for ^5 {
+            sleep 1;
+            say "thread B doing something under protection of the lock";
+        }
+    });
+});
+
+my $thread-c = Thread.start({
+    $l.protect-exclusive({
+        for ^5 {
+            sleep 1;
+            say "thread C doing something under exclusive protection of the lock";
+        }
+    });
+});
+
+$thread-a.join;
+$thread-b.join;
+$thread-c.join;
+
+=end code
+
+=head1 FEATURES
+
+=item Does what a basic `Lock` does, just slower and with more bugs ;)
+
+=item Reentrant: the lock can be taken again by a thread that is already holding it It needs to be unlocked the same number of times it was locked before it can be taken by another thread
+
+=item Fair in the sense of first-come-first-serve
+
+=item Shared access: multiple 'readers' can share the lock, yet access is mutually exclusive between 'readers' and 'writers'
+
+=item Lock Upgrade: you can upgrade a shared access mode to an exclusive without unlocking first, if no other thread is interferring. In this case you do not need to unlock twice.
+
+=head1 PLANNED FEATURES
+
+=item Read-for-write access mode that guarantees that a lock upgrade can be taken
+
+=item Async version that returns threads to the threadpool and returns a promise from lock()
+
+=head1 DESCRIPTION
 
 This module implements a lock/mutex with shared and exclusive access modes, so a
 set of 'readers' could share the lock while 'writers' need exclusive access. The
@@ -23,7 +86,9 @@ Please note that locks of whatever kind are a very low-level synchronisation
 mechanism and inherently difficult to use correctly, where possible higher-level
 mechanisms like a C<Channel>, C<Promise> or C<Suppply> should be used.
 
-=head1 Constructor
+=head1 EXAMPLES
+
+=head2 Constructor
 
     use ReadWriteLock
     
@@ -31,7 +96,7 @@ mechanisms like a C<Channel>, C<Promise> or C<Suppply> should be used.
 
 Constructing a ReadWriteLock is very simple and takes no arguments.
 
-=head1 Protecting a Code segment
+=head2 Protecting a Code segment
 
     $l.protect-shared({
         # code thunk
@@ -55,7 +120,7 @@ can either use the 'long' form like C<protect-shared()>, which is nice and
 implicit, or pass the access mode in as an argument, which allows determning it
 from a function and passing it around.
 
-=head1 Direct locking/unlocking
+=head2 Direct locking/unlocking
 
     $l.lock-shared();
 
@@ -72,7 +137,7 @@ tricky usages like overhand locking etc, but requires more care to be safe. If
 you lock multiple times, you need to unlock a matching number of times before
 the lock becomes available again.
 
-=headd1 Lock Upgrades
+=head2 Lock Upgrades
 
     $l.lock-shared();
 
@@ -91,7 +156,7 @@ lock has been upgraded not re-entered.
 
 =end pod
 
-class ReadWriteLock {
+class ReadWriteLock:ver<0.3.0>:auth<zef:lizmat> {
 
     class WaitGroup {
         has $.access is rw;
@@ -102,7 +167,7 @@ class ReadWriteLock {
     has $!latch = Lock.new();
     has @!wait-groups = ();
 
-    method lock(AccessMode $access) {
+    method lock(AccessMode $access -->  Nil) {
         $!latch.protect({
             # Case A: noone is currently holding the lock, easy!
             if ! @!wait-groups {
@@ -110,14 +175,12 @@ class ReadWriteLock {
                     access => $access,
                     threads => ($*THREAD.id => 1),
                     cond => $!latch.condition));
-                return;
             }
             # Case B: we already hold the lock in a access mode equal or
             # better to the one requested, just reenter it
             elsif      @!wait-groups.head.threads{$*THREAD.id} 
                     && $access <= @!wait-groups.head.access {
                 @!wait-groups.head.threads{$*THREAD.id}++;
-                return;
             }
             # Case C: we want shared access and can join the last waitgroup
             elsif $access == shared && @!wait-groups.tail.access == shared {
@@ -126,7 +189,6 @@ class ReadWriteLock {
                 while not $joined-wg === @!wait-groups.head {
                     $joined-wg.cond.wait();
                 }
-                return;
             }
             # Case D: we want to upgrade the lock from shared to exclusive
             elsif      $access == exclusive 
@@ -146,7 +208,6 @@ class ReadWriteLock {
                     }
                     # ... and then we can upgrade it
                     @!wait-groups.head.access = exclusive;
-                    return;
                 }
                 # interestingly the case E below does the right thing if there
                 # are still other shared threads in the waitgroup we want to
@@ -162,7 +223,6 @@ class ReadWriteLock {
                 while not $new-wg === @!wait-groups.head {
                     $new-wg.cond.wait();
                 }
-                return;
             }
         });
     }
@@ -220,3 +280,5 @@ class ReadWriteLock {
         self.protect(exclusive, &code);
     }
 }
+
+# vim: expandtab shiftwidth=4
