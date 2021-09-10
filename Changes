@@ -2,5 +2,8 @@ Revision history for ReadWriteLock
 
 {{$NEXT}}
 
+0.3.1  2021-09-10T19:29:06+02:00
+    - Add missing AUTHORS section to pod
+
 0.3.0  2021-09-10T18:48:49+02:00
     - Initial version by Elizabeth Mattijsen

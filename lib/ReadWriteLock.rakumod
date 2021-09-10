@@ -156,7 +156,7 @@ lock has been upgraded not re-entered.
 
 =end pod
 
-class ReadWriteLock:ver<0.3.0>:auth<zef:lizmat> {
+class ReadWriteLock:ver<0.3.1>:auth<zef:lizmat> {
 
     class WaitGroup {
         has $.access is rw;
