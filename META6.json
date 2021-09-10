@@ -17,7 +17,7 @@
   },
   "resources": [
   ],
-  "source-url": "https://github.com/lizmat/ReadWriteLock",
+  "source-url": "https://github.com/lizmat/ReadWriteLock.git",
   "tags": [
   ],
   "test-depends": [
