@@ -135,3 +135,17 @@ Lock Upgrades
 
 You can upgrade a lock that you are holding in shared mode to an exclusive access, as long as no other thread was traying to do the same before (You will get an exception in that case). In this case you only need to unlock once, the lock has been upgraded not re-entered.
 
+AUTHORS
+=======
+
+Robert Lemmen (2018-2020), Elizabeth Mattijsen <liz@raku.rocks> (2021-)
+
+Source can be located at: https://github.com/lizmat/ReadWriteLock . Comments and Pull Requests are welcome.
+
+COPYRIGHT AND LICENSE
+=====================
+
+Copyright 2018-2020 Robert Lemmen, 2021 Elizabeth Mattijsen
+
+This library is free software; you can redistribute it and/or modify it under the Artistic License 2.0.
+
