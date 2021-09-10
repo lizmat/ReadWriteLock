@@ -281,4 +281,22 @@ class ReadWriteLock:ver<0.3.0>:auth<zef:lizmat> {
     }
 }
 
+
+=begin pod
+
+=head1 AUTHORS
+
+Robert Lemmen (2018-2020), Elizabeth Mattijsen <liz@raku.rocks> (2021-)
+
+Source can be located at: https://github.com/lizmat/ReadWriteLock . Comments and
+Pull Requests are welcome.
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright 2018-2020 Robert Lemmen, 2021 Elizabeth Mattijsen
+
+This library is free software; you can redistribute it and/or modify it under the Artistic License 2.0.
+
+=end pod
+
 # vim: expandtab shiftwidth=4
