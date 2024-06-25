@@ -1,7 +1,7 @@
 enum AccessMode <shared exclusive>;
 
 # we want to be able to compare AccessModes for an "implied-in" predicate,
-# where e.g. exclusive access includes everything you can do with shared access 
+# where e.g. exclusive access includes everything you can do with shared access
 sub infix:<\<=>(AccessMode $a, AccessMode $b) {
     $a == shared || $b == exclusive;
 }
@@ -59,7 +59,7 @@ $thread-c.join;
 
 =head1 FEATURES
 
-=item Does what a basic `Lock` does, just slower and with more bugs ;)
+=item Does what a basic C<Lock> does, just slower and with more bugs ;)
 
 =item Reentrant: the lock can be taken again by a thread that is already holding it It needs to be unlocked the same number of times it was locked before it can be taken by another thread
 
@@ -77,42 +77,51 @@ $thread-c.join;
 
 =head1 DESCRIPTION
 
-This module implements a lock/mutex with shared and exclusive access modes, so a
-set of 'readers' could share the lock while 'writers' need exclusive access. The
-lock is reentrant, so can be taken multiple times by the same thread, and fair
-in the sense of come-first-server-first. 
+This module implements a lock/mutex with shared and exclusive access modes,
+so a set of 'readers' could share the lock while 'writers' need exclusive
+access. The lock is reentrant, so can be taken multiple times by the same
+thread, and fair in the sense of come-first-server-first.
 
 Please note that locks of whatever kind are a very low-level synchronisation
-mechanism and inherently difficult to use correctly, where possible higher-level
-mechanisms like a C<Channel>, C<Promise> or C<Suppply> should be used.
+mechanism and inherently difficult to use correctly, where possible
+higher-level mechanisms like a C<Channel>, C<Promise> or C<Suppply> should
+be used.
 
 =head1 EXAMPLES
 
 =head2 Constructor
 
-    use ReadWriteLock
-    
-    my $l = ReadWriteLock.new()
+=begin code :lang<raku>
+
+use ReadWriteLock;
+
+my $l = ReadWriteLock.new;
+
+=end code
 
 Constructing a ReadWriteLock is very simple and takes no arguments.
 
 =head2 Protecting a Code segment
 
-    $l.protect-shared({
-        # code thunk
-    });
-    
-    $l.protect-exclusive({
-        # code thunk
-    });
-    
-    $l.protect(shared, {
-        # code thunk
-    });
+=begin code :lang<raku>
 
-    $l.protect(exclusive, {
-        # code thunk
-    });
+$l.protect-shared: {
+    # code thunk
+}
+
+$l.protect-exclusive: {
+    # code thunk
+}
+
+$l.protect: shared, {
+    # code thunk
+}
+
+$l.protect: exclusive, {
+    # code thunk
+}
+
+=end code
 
 The C<protect()> usage pattern has the distinct benefit that it automatically
 unlocks in case of e.g. exceptions or whenever the code block is being left. You
@@ -122,15 +131,19 @@ from a function and passing it around.
 
 =head2 Direct locking/unlocking
 
-    $l.lock-shared();
+=begin code :lang<raku>
 
-    $l.lock-exclusive();
+$l.lock-shared;
 
-    $l.lock(shared);
+$l.lock-exclusive;
 
-    $l.lock(exclusive);
+$l.lock(shared);
 
-    $l.unlock();
+$l.lock(exclusive);
+
+$l.unlock;
+
+=end code
 
 Alternatively you can also use stand-alone lock/unlock calls, which allows
 tricky usages like overhand locking etc, but requires more care to be safe. If
@@ -139,15 +152,19 @@ the lock becomes available again.
 
 =head2 Lock Upgrades
 
-    $l.lock-shared();
+=begin code :lang<raku>
 
-    # do something
+$l.lock-shared;
 
-    $l.lock-exclusive();
+# do something
 
-    # do something else that requires exclusive access
+$l.lock-exclusive;
 
-    $l.unlock();
+# do something else that requires exclusive access
+
+$l.unlock;
+
+=end code
 
 You can upgrade a lock that you are holding in shared mode to an exclusive
 access, as long as no other thread was traying to do the same before (You will
@@ -156,7 +173,7 @@ lock has been upgraded not re-entered.
 
 =end pod
 
-class ReadWriteLock:ver<0.3.1>:auth<zef:lizmat> {
+class ReadWriteLock {
 
     class WaitGroup {
         has $.access is rw;
@@ -164,8 +181,8 @@ class ReadWriteLock:ver<0.3.1>:auth<zef:lizmat> {
         has $.cond;
     };
 
-    has $!latch = Lock.new();
-    has @!wait-groups = ();
+    has $!latch = Lock.new;
+    has @!wait-groups;
 
     method lock(AccessMode $access -->  Nil) {
         $!latch.protect({
@@ -178,7 +195,7 @@ class ReadWriteLock:ver<0.3.1>:auth<zef:lizmat> {
             }
             # Case B: we already hold the lock in a access mode equal or
             # better to the one requested, just reenter it
-            elsif      @!wait-groups.head.threads{$*THREAD.id} 
+            elsif      @!wait-groups.head.threads{$*THREAD.id}
                     && $access <= @!wait-groups.head.access {
                 @!wait-groups.head.threads{$*THREAD.id}++;
             }
@@ -191,7 +208,7 @@ class ReadWriteLock:ver<0.3.1>:auth<zef:lizmat> {
                 }
             }
             # Case D: we want to upgrade the lock from shared to exclusive
-            elsif      $access == exclusive 
+            elsif      $access == exclusive
                     && @!wait-groups.head.access == shared
                     && @!wait-groups.head.threads{$*THREAD.id} {
                 if not @!wait-groups.head === @!wait-groups.tail {
@@ -266,9 +283,7 @@ class ReadWriteLock:ver<0.3.1>:auth<zef:lizmat> {
     proto method protect(|) {*}
     multi method protect(AccessMode $access, &code) {
         self.lock($access);
-        LEAVE {
-            self.unlock();
-        }
+        LEAVE self.unlock;
         code()
     }
 
@@ -281,7 +296,6 @@ class ReadWriteLock:ver<0.3.1>:auth<zef:lizmat> {
     }
 }
 
-
 =begin pod
 
 =head1 AUTHORS
@@ -291,9 +305,13 @@ Robert Lemmen (2018-2020), Elizabeth Mattijsen <liz@raku.rocks> (2021-)
 Source can be located at: https://github.com/lizmat/ReadWriteLock . Comments and
 Pull Requests are welcome.
 
+If you like this module, or what I’m doing more generally, committing to a
+L<small sponsorship|https://github.com/sponsors/lizmat/>  would mean a great
+deal to me!
+
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2018-2020 Robert Lemmen, 2021 Elizabeth Mattijsen
+Copyright 2018-2020 Robert Lemmen, 2021, 2024 Elizabeth Mattijsen
 
 This library is free software; you can redistribute it and/or modify it under the Artistic License 2.0.
 

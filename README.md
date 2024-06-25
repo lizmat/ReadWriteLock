@@ -68,7 +68,7 @@ PLANNED FEATURES
 DESCRIPTION
 ===========
 
-This module implements a lock/mutex with shared and exclusive access modes, so a set of 'readers' could share the lock while 'writers' need exclusive access. The lock is reentrant, so can be taken multiple times by the same thread, and fair in the sense of come-first-server-first. 
+This module implements a lock/mutex with shared and exclusive access modes, so a set of 'readers' could share the lock while 'writers' need exclusive access. The lock is reentrant, so can be taken multiple times by the same thread, and fair in the sense of come-first-server-first.
 
 Please note that locks of whatever kind are a very low-level synchronisation mechanism and inherently difficult to use correctly, where possible higher-level mechanisms like a `Channel`, `Promise` or `Suppply` should be used.
 
@@ -78,60 +78,68 @@ EXAMPLES
 Constructor
 -----------
 
-    use ReadWriteLock
+```raku
+use ReadWriteLock;
 
-    my $l = ReadWriteLock.new()
+my $l = ReadWriteLock.new;
+```
 
 Constructing a ReadWriteLock is very simple and takes no arguments.
 
 Protecting a Code segment
 -------------------------
 
-    $l.protect-shared({
-        # code thunk
-    });
+```raku
+$l.protect-shared: {
+    # code thunk
+}
 
-    $l.protect-exclusive({
-        # code thunk
-    });
+$l.protect-exclusive: {
+    # code thunk
+}
 
-    $l.protect(shared, {
-        # code thunk
-    });
+$l.protect: shared, {
+    # code thunk
+}
 
-    $l.protect(exclusive, {
-        # code thunk
-    });
+$l.protect: exclusive, {
+    # code thunk
+}
+```
 
 The `protect()` usage pattern has the distinct benefit that it automatically unlocks in case of e.g. exceptions or whenever the code block is being left. You can either use the 'long' form like `protect-shared()`, which is nice and implicit, or pass the access mode in as an argument, which allows determning it from a function and passing it around.
 
 Direct locking/unlocking
 ------------------------
 
-    $l.lock-shared();
+```raku
+$l.lock-shared;
 
-    $l.lock-exclusive();
+$l.lock-exclusive;
 
-    $l.lock(shared);
+$l.lock(shared);
 
-    $l.lock(exclusive);
+$l.lock(exclusive);
 
-    $l.unlock();
+$l.unlock;
+```
 
 Alternatively you can also use stand-alone lock/unlock calls, which allows tricky usages like overhand locking etc, but requires more care to be safe. If you lock multiple times, you need to unlock a matching number of times before the lock becomes available again.
 
 Lock Upgrades
 -------------
 
-    $l.lock-shared();
+```raku
+$l.lock-shared;
 
-    # do something
+# do something
 
-    $l.lock-exclusive();
+$l.lock-exclusive;
 
-    # do something else that requires exclusive access
+# do something else that requires exclusive access
 
-    $l.unlock();
+$l.unlock;
+```
 
 You can upgrade a lock that you are holding in shared mode to an exclusive access, as long as no other thread was traying to do the same before (You will get an exception in that case). In this case you only need to unlock once, the lock has been upgraded not re-entered.
 
@@ -142,10 +150,12 @@ Robert Lemmen (2018-2020), Elizabeth Mattijsen <liz@raku.rocks> (2021-)
 
 Source can be located at: https://github.com/lizmat/ReadWriteLock . Comments and Pull Requests are welcome.
 
+If you like this module, or what I’m doing more generally, committing to a [small sponsorship](https://github.com/sponsors/lizmat/) would mean a great deal to me!
+
 COPYRIGHT AND LICENSE
 =====================
 
-Copyright 2018-2020 Robert Lemmen, 2021 Elizabeth Mattijsen
+Copyright 2018-2020 Robert Lemmen, 2021, 2024 Elizabeth Mattijsen
 
 This library is free software; you can redistribute it and/or modify it under the Artistic License 2.0.
 
