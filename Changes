@@ -1,6 +1,8 @@
 Revision history for ReadWriteLock
 
 {{$NEXT}}
+
+0.3.3  2025-06-04T15:34:28+02:00
     - Add CI badge for each OS
     - Update copyright year
 
