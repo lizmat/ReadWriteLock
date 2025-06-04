@@ -19,6 +19,8 @@
   ],
   "source-url": "https://github.com/lizmat/ReadWriteLock.git",
   "tags": [
+    "LOCK",
+    "ASYNCHRONOUS"
   ],
   "test-depends": [
   ],
